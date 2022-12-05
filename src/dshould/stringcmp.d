@@ -197,7 +197,8 @@ public auto multiLineDiff(string[] expected, string[] text) @safe
 }
 
 // TODO bracket crossing cost
-public Nullable!T colorizedDiff(T, alias removePred, alias addPred, alias keepPred)(T expected, T text) pure @trusted
+public Nullable!T colorizedDiff(T, alias removePred, alias addPred, alias keepPred)(
+    T expected, T text, Flag!"forceDiff" forceDiff = No.forceDiff) pure @trusted
 {
     import std.algorithm : count;
     import std.array : Appender, empty;
@@ -213,7 +214,7 @@ public Nullable!T colorizedDiff(T, alias removePred, alias addPred, alias keepPr
     auto levenshtein = Levenshtein!T(expected, text);
     const path = levenshtein.reconstructPath;
 
-    if (path.count!(a => a != levenshtein.EditOp.Type.keep) > text.length)
+    if (path.count!(a => a != levenshtein.EditOp.Type.keep) > text.length && !forceDiff)
     {
         return Nullable!T.init; // no diff view, too different
     }

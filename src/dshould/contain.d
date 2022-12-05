@@ -3,6 +3,7 @@ module dshould.contain;
 import dshould.ShouldType;
 import dshould.basic : not, should;
 import std.traits : isAssociativeArray;
+import std.typecons : Yes;
 
 /**
  * The word `.contain` takes one value, expected to appear in the range on the left hand side.
@@ -145,7 +146,7 @@ if (isInstanceOf!(ShouldType, Should))
         return format(
             "\n[\n%-(%s,\n%)\n]",
             colorizedDiff!(string[], removePred, addPred, keepPred)(
-                rhs.map!(to!string).array.sort.array, lhs.map!(to!string).array.sort.array));
+                rhs.map!(to!string).array.sort.array, lhs.map!(to!string).array.sort.array, Yes.forceDiff));
     }
 
     with (should)
