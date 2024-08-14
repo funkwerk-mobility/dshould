@@ -22,7 +22,7 @@ public void json(Should)(Should should, const JSONValue expected,
     Fence _ = Fence(), string file = __FILE__, size_t line = __LINE__)
 if (isInstanceOf!(ShouldType, Should))
 {
-    should.allowOnlyWords!("contain").before!"json";
+    should.allowOnlyWords!("be", "contain").before!"json";
 
     should.terminateChain;
 
@@ -30,11 +30,32 @@ if (isInstanceOf!(ShouldType, Should))
     {
         auto got = should.got();
 
-        if (!got.containsJson(expected))
+        static if (hasWord!"contain")
         {
-            stringCmpError(got.toPrettyString, expected.toPrettyString, No.quote, file, line);
+            if (!got.containsJson(expected))
+            {
+                stringCmpError(got.toPrettyString, expected.toPrettyString, No.quote, file, line);
+            }
+        }
+        else
+        {
+            if (got != expected)
+            {
+                stringCmpError(got.toPrettyString, expected.toPrettyString, No.quote, file, line);
+            }
         }
     }
+}
+
+///
+@("should be JSON")
+unittest
+{
+    import dshould : be;
+
+    `{"a": 5, "b": 6}`.parseJSON.should.be.json(`{"a": 5, "b": 6}`.parseJSON);
+    `{"a": 5, "b": 6}`.parseJSON.should.be.json(`{"b": 6, "a": 5}`.parseJSON);
+    `{"a": 5, "b": 6}`.parseJSON.should.be.json(`{"a": 5}`.parseJSON).should.throwAn!Error;
 }
 
 ///
@@ -62,6 +83,17 @@ if (isInstanceOf!(ShouldType, Should))
     enum expected = jsonString.parseJSON;
 
     return should.json(expected, Fence(), file, line);
+}
+
+///
+@("should be JSON")
+unittest
+{
+    import dshould : be;
+
+    `{"a": 5, "b": 6}`.parseJSON.should.be.json!`{"a": 5, "b": 6}`;
+    `{"a": 5, "b": 6}`.parseJSON.should.be.json!`{"b": 6, "a": 5}`;
+    `{"a": 5, "b": 6}`.parseJSON.should.be.json!`{"a": 5}`.should.throwAn!Error;
 }
 
 ///
