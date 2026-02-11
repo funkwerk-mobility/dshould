@@ -4,7 +4,7 @@ import std.format : format;
 import std.traits : CommonType;
 import std.typecons;
 import dshould.ShouldType;
-import dshould.basic : be, equal, not, should;
+import dshould.basic : as, be, equal, not, same, should;
 
 /**
  * The phrase `.should.throwA!Type` (or `.throwAn!Exception`, depending on grammar) expects the left-hand side expression
@@ -36,7 +36,7 @@ public template throwA(T : Throwable)
                 {
                     innerError = new FluentError(
                         format!`no exception of type %s`(T.stringof),
-                        format!`%s`(throwable),
+                        (() @trusted => format!`%s`(throwable))(),
                         file, line
                     );
                 }
@@ -78,7 +78,7 @@ public template throwA(T : Throwable)
             {
                 throw new FluentError(
                     format!`exception of type %s`(T.stringof),
-                    format!`%s`(otherThrowable),
+                    (() @trusted => format!`%s`(otherThrowable))(),
                     file, line
                 );
             }
@@ -106,7 +106,7 @@ public template throwA(T : Throwable)
 public alias throwAn = throwA;
 
 ///
-unittest
+@safe unittest
 {
     auto exception = new Exception("");
 
@@ -115,9 +115,13 @@ unittest
      */
     void throwsException() { throw exception; }
 
-    throwsException.should.throwAn!Exception.which.should.be(exception);
-    throwsException.should.throwAn!Exception.which.should.not.be(null);
+    throwsException.should.throwAn!Exception.which.should.be.same.as(exception);
+    throwsException.should.throwAn!Exception.which.should.not.be.same.as(null);
+}
 
+///
+@system unittest
+{
     2.should.be(5).should.throwA!FluentError;
     2.should.be(5).should.throwAn!Exception.should.throwA!FluentError;
 
