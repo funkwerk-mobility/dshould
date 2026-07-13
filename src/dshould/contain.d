@@ -21,6 +21,24 @@ unittest
 {
     [2, 3, 4].should.contain(3);
     [2, 3, 4].should.not.contain(5);
+
+    // strings: contiguous substring containment
+    "Hello World".should.contain("Hello");
+    "Hello World".should.contain("World");
+    "Hello World".should.not.contain("oleh");
+}
+
+unittest
+{
+    import dshould : equal;
+    import dshould.stringcmp : green;
+    import dshould.thrown : throwA;
+
+    "Hello World".should.contain("xyz").should.throwA!FluentError.where.msg.should.equal(
+        "Test failed: expected string containing xyz, but got Hello World");
+    // the `.not` failure highlights, in green, where the substring was found
+    "Hello World".should.not.contain("Hello").should.throwA!FluentError.where.msg.should.equal(
+        "Test failed: expected string not containing Hello, but got " ~ green("Hello") ~ " World");
 }
 
 public auto contain(Should)(Should should)
@@ -277,6 +295,7 @@ if (isInstanceOf!(ShouldType, Should) && !isAssociativeArray!T)
     import std.algorithm : any, all, canFind;
     import std.format : format;
     import std.range : ElementType, save;
+    import std.traits : isSomeString;
 
     with (should)
     {
@@ -386,10 +405,59 @@ if (isInstanceOf!(ShouldType, Should) && !isAssociativeArray!T)
                         file, line);
                 }
             }
+            // simple range-contains-range syntax: `foo.should.contain(bar)`.
+            else static if (__traits(compiles, got.save.canFind(expected)))
+            {
+                // string-contains-string case (better messages)
+                static if (isSomeString!(typeof(got)))
+                {
+                    import dshould.stringcmp : green;
+                    import std.array : array;
+                    import std.string : replace;
+                    import std.utf : toUTF8;
+
+                    static if (hasWord!"not")
+                    {
+                        check(
+                            !got.save.canFind(expected),
+                            format("string not containing %s", expected),
+                            got.array.toUTF8.replace(expected, green(expected)),
+                            file, line);
+                    }
+                    else
+                    {
+                        check(
+                            got.save.canFind(expected),
+                            format("string containing %s", expected),
+                            got,
+                            file, line);
+                    }
+                }
+                else
+                {
+                    static if (hasWord!"not")
+                    {
+                        check(
+                            !got.save.canFind(expected),
+                            format("range not containing %s", expected),
+                            format("%s", got),
+                            file, line);
+                    }
+                    else
+                    {
+                        check(
+                            got.save.canFind(expected),
+                            format("range containing %s", expected),
+                            format("%s", got),
+                            file, line);
+                    }
+                }
+            }
             else
             {
                 static assert(false,
-                    `bad grammar: expected "contain all", "contain any", "contain only" (or "only contain")`);
+                    `bad grammar: expected "contain all", "contain any", ` ~
+                    `"contain only" (or "only contain") or range-contains-range.`);
             }
         }
     }
